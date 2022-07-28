@@ -9,11 +9,14 @@ ENV RAILS_SERVE_STATIC_FILES 1
 ENV APP_HOME /home/app
 WORKDIR $APP_HOME
 
-RUN apt-get update -qq \
+ARG NODE_MAJOR_VERSION=14
+RUN curl -sL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash - \
+  && apt-get update -qq \
   && apt-get install -y --no-install-recommends \
   build-essential \
   curl \
   postgresql-client \
+  dumb-init \
   git \
   libssl-dev \
   libxslt-dev \
@@ -37,17 +40,28 @@ RUN gem install bundler -v "${BUNDLER_VERSION}"
 
 # install gems
 COPY Gemfile* ./
-RUN bundle install
+ARG BUNDLE_WITHOUT="development test"
+RUN gem install bundler && bundle install -j4 --retry 3 --path vendor/bundle --without ${BUNDLE_WITHOUT}
 # copy code
 COPY . .
 
 ARG RAILS_ENV=production
 ENV RAILS_ENV ${RAILS_ENV}
-
 RUN bundle exec rake assets:precompile
 
 EXPOSE 3000
-
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD [ "bin/rails", "s", "-u", "Puma", "-b", "0.0.0.0", "-p", "3000" ]
 
+
+# describe in production enviroment
+
+FROM base as production
+
+COPY --from=base /home/app/vendor/bundle /home/app/vendor/bundle
+ARG BUNDLE_WITHOUT="development test"
+RUN gem install bundler && bundle install -j4 --retry 3 --path vendor/bundle --without ${BUNDLE_WITHOUT}
+
+COPY --from=base /home/app/public /home/app/public
+RUN bundle exec rake assets:precompile
 

@@ -23,11 +23,11 @@ services:
       # bind-mount your working directory of code
       - .:/home/app
       # attach a volume at /bundle to keep gems outside of the container image
-      - bundle:/bundle
+      - bundle:/home/app/vendor/bundle
       # attach a volume at ./tmp to cache asset compilation, rails cache files
       - tmp:/home/app/tmp
     environment:
-      - BUNDLE_PATH=/bundle
+      - BUNDLE_PATH=/home/app/vendor/bundle
     env_file:
       - .env
     ports:
