@@ -1,0 +1,41 @@
+version: "3.5"
+
+volumes:
+  bundle:
+    driver: local
+  postgres:
+    driver: local
+  tmp:
+    driver: local
+
+services:
+  app:
+    depends_on:
+      - 'postgres'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "my-app:1.0"
+    # so things like pry work
+    tty: true
+    stdin_open: true
+    volumes:
+      # bind-mount your working directory of code
+      - .:/home/app
+      # attach a volume at /bundle to keep gems outside of the container image
+      - bundle:/bundle
+      # attach a volume at ./tmp to cache asset compilation, rails cache files
+      - tmp:/home/app/tmp
+    environment:
+      - BUNDLE_PATH=/bundle
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+
+  postgres:
+    image: postgres:14.3
+    env_file:
+      - .env
+    volumes:
+      - postgres:/var/lib/postgresql/14/main
