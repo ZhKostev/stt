@@ -1,10 +1,8 @@
 FROM ruby:3.1.2 as base
 
 # set some default ENV values for the image
-ENV BUNDLE_PATH /bundle
 ENV RAILS_LOG_TO_STDOUT 1
 ENV RAILS_SERVE_STATIC_FILES 1
-
 # set the app directory var
 ENV APP_HOME /home/app
 WORKDIR $APP_HOME
@@ -27,21 +25,17 @@ RUN curl -sL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash - \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get clean
 
-# add and verify github host fingerprint
-# (necessary if you're installing gems from github)
-RUN ssh-keyscan -t rsa github.com \
-  | tee /root/.ssh/known_hosts \
-  | ssh-keygen -lf - \
-  | grep 'SHA256:nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8'
-
 # install specific bundler version
-ARG BUNDLER_VERSION=2.0.2
+ARG BUNDLER_VERSION=2.3.7
 RUN gem install bundler -v "${BUNDLER_VERSION}"
 
 # install gems
 COPY Gemfile* ./
-ARG BUNDLE_WITHOUT="development test"
-RUN gem install bundler && bundle install -j4 --retry 3 --path vendor/bundle --without ${BUNDLE_WITHOUT}
+RUN gem install bundler
+RUN bundle config --local deployment true
+RUN bundle config --local without "development test"
+RUN bundle config --local path /usr/local/bundle
+RUN bundle install
 # copy code
 COPY . .
 
@@ -58,9 +52,13 @@ CMD [ "bin/rails", "s", "-u", "Puma", "-b", "0.0.0.0", "-p", "3000" ]
 
 FROM base as production
 
-COPY --from=base /home/app/vendor/bundle /home/app/vendor/bundle
-ARG BUNDLE_WITHOUT="development test"
-RUN gem install bundler && bundle install -j4 --retry 3 --path vendor/bundle --without ${BUNDLE_WITHOUT}
+COPY --from=base /usr/local/bundle /usr/local/bundle
+COPY Gemfile* ./
+RUN gem install bundler
+RUN bundle config --local deployment true
+RUN bundle config --local without "development test"
+RUN bundle config --local path /usr/local/bundle
+RUN bundle install
 
 COPY --from=base /home/app/public /home/app/public
 RUN bundle exec rake assets:precompile
