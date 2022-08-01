@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rails-web-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stt-app
+  template:
+    metadata:
+      labels:
+        app: stt-app
+    spec:
+      containers:
+      - name: stt-app
+        image: us.gcr.io/stt-app-357613/app:v1
+        ports:
+        - containerPort: 3000
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
