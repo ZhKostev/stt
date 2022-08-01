@@ -84,5 +84,5 @@ test:
 # [START cloudrun_rails_database]
 production:
   <<: *default
-  host: "<%= ENV.fetch("DB_SOCKET_DIR") { '/cloudsql' } %>/<%= ENV["CLOUD_SQL_CONNECTION_NAME"] %>"
+  host: <%= ENV['PSQL_HOST'] %>
 # [END cloudrun_rails_database]

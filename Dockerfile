@@ -27,21 +27,19 @@ RUN curl -sL https://deb.nodesource.com/setup_${NODE_MAJOR_VERSION}.x | bash - \
 
 # install specific bundler version
 ARG BUNDLER_VERSION=2.3.7
+ARG BUNDLE_DIR=/usr/local/bundle
 RUN gem install bundler -v "${BUNDLER_VERSION}"
 
 # install gems
 COPY Gemfile* ./
-RUN gem install bundler
-RUN bundle config --local deployment true
 RUN bundle config --local without "development test"
-RUN bundle config --local path /usr/local/bundle
+RUN bundle config --local path ${BUNDLE_DIR}
 RUN bundle install
 # copy code
 COPY . .
 
 ARG RAILS_ENV=production
 ENV RAILS_ENV ${RAILS_ENV}
-RUN bundle exec rake assets:precompile
 
 EXPOSE 3000
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
@@ -52,12 +50,15 @@ CMD [ "bin/rails", "s", "-u", "Puma", "-b", "0.0.0.0", "-p", "3000" ]
 
 FROM base as production
 
-COPY --from=base /usr/local/bundle /usr/local/bundle
+ARG BUNDLER_VERSION=2.3.7
+ARG BUNDLE_DIR=/usr/local/bundle
+
+COPY --from=base  ${BUNDLE_DIR} ${BUNDLE_DIR}
 COPY Gemfile* ./
-RUN gem install bundler
-RUN bundle config --local deployment true
+
+RUN gem install bundler -v "${BUNDLER_VERSION}"
 RUN bundle config --local without "development test"
-RUN bundle config --local path /usr/local/bundle
+RUN bundle config --local path ${BUNDLE_DIR}
 RUN bundle install
 
 COPY --from=base /home/app/public /home/app/public
