@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: rails-web-deployment
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: stt-app
@@ -14,60 +13,51 @@ spec:
     spec:
       serviceAccountName: ksa-cloud-sql
       containers:
-      - name: stt-app
-        image: us.gcr.io/stt-app-357613/app:v6
-        ports:
-        - containerPort: 3000
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 3000
-          initialDelaySeconds: 30
-          timeoutSeconds: 1
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 3000
-          initialDelaySeconds: 30
-          timeoutSeconds: 1
-        env:
-          - name: PSQL_DB_NAME
-            valueFrom:
-              secretKeyRef:
-                name: rails-web-credentials-2
-                key: db_name
-          - name: PSQL_DB_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: rails-web-credentials-2
-                key: db_user
-          - name: PSQL_DB_PWD
-            valueFrom:
-              secretKeyRef:
-                name: rails-web-credentials-2
-                key: db_password
-          - name: PSQL_HOST
-            valueFrom:
-              secretKeyRef:
-                name: rails-web-credentials-2
-                key: db_host
-      - name: cloud-sql-proxy
-        # This uses the latest version of the Cloud SQL proxy
-        # It is recommended to use a specific version for production environments.
-        # See: https://github.com/GoogleCloudPlatform/cloudsql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:latest
-        command:
-          - "/cloud_sql_proxy"
+        - name: stt-app
+          # Replace <LOCATION> with your Artifact Registry location (e.g., us-central1).
+          # Replace <YOUR_PROJECT_ID> with your project ID.
+          image: us.gcr.io/sql-connect-test-app/app:v9
+          # This app listens on port 8080 for web traffic by default.
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PSQL_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: rails-web-credentials
+                  key: db_name
+            - name: PSQL_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rails-web-credentials
+                  key: db_user
+            - name: PSQL_DB_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: rails-web-credentials
+                  key: db_password
+            - name: PSQL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rails-web-credentials
+                  key: db_host
+        - name: cloud-sql-proxy
+          # This uses the latest version of the Cloud SQL proxy
+          # It is recommended to use a specific version for production environments.
+          # See: https://github.com/GoogleCloudPlatform/cloudsql-proxy
+          image: gcr.io/cloudsql-docker/gce-proxy:latest
+          command:
+            - "/cloud_sql_proxy"
 
-          # If connecting from a VPC-native GKE cluster, you can use the
-          # following flag to have the proxy connect over private IP
-          # - "-ip_address_types=PRIVATE"
+            # If connecting from a VPC-native GKE cluster, you can use the
+            # following flag to have the proxy connect over private IP
+            - "-ip_address_types=PRIVATE"
 
-          # tcp should be set to the port the proxy should listen on
-          # and should match the DB_PORT value set above.
-          # Defaults: MySQL: 3306, Postgres: 5432, SQLServer: 1433
-          - "-instances=stt-app-357613:europe-west3:stt-app-pg-2=tcp:5432"
-        securityContext:
-          # The default Cloud SQL proxy image runs as the
-          # "nonroot" user and group (uid: 65532) by default.
-          runAsNonRoot: true
+            # tcp should be set to the port the proxy should listen on
+            # and should match the DB_PORT value set above.
+            # Defaults: MySQL: 3306, Postgres: 5432, SQLServer: 1433
+            - "-instances=sql-connect-test-app:europe-west3:stt-app-pg=tcp:5432"
+          securityContext:
+            # The default Cloud SQL proxy image runs as the
+            # "nonroot" user and group (uid: 65532) by default.
+            runAsNonRoot: true
