@@ -14,12 +14,14 @@ spec:
       serviceAccountName: ksa-cloud-sql
       containers:
         - name: stt-app
-          # Replace <LOCATION> with your Artifact Registry location (e.g., us-central1).
-          # Replace <YOUR_PROJECT_ID> with your project ID.
-          image: us.gcr.io/sql-connect-test-app/app:v9
-          # This app listens on port 8080 for web traffic by default.
+          image: us.gcr.io/sql-connect-test-app/app:v10
           ports:
             - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /_heath
+              port: 3000
+              scheme: HTTP
           env:
             - name: PSQL_DB_NAME
               valueFrom:
