@@ -32,6 +32,9 @@ spec:
                 secretKeyRef:
                   name: rails-web-credentials
                   key: db_password
+            # I have to use connection via private IP because extra container
+            # with cloud_sql_proxy will broke job. SSL is turned off as well, but
+            # can be enabled with custom certs. Main app will use cloud_sql_proxy
             - name: PSQL_HOST
               valueFrom:
                 secretKeyRef:
